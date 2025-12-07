@@ -8,7 +8,8 @@ nixPkgs = ["nodejs_20"]
 cmds = ["npm install", "npm install --prefix frontend-react"]
 
 [phases.build]
-cmds = ["npm run build --prefix frontend-react"]
+# Set VITE_API_URL to empty string so frontend uses relative URLs in production
+cmds = ["VITE_API_URL='' npm run build --prefix frontend-react"]
 
 [start]
 cmd = "node index.js"
