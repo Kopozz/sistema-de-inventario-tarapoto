@@ -51,10 +51,7 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 // Servir archivos estáticos del frontend construido
 app.use(express.static(path.join(__dirname, 'frontend-react', 'dist')));
 
-// Cualquier otra ruta que no sea API, sirve el frontend (SPA)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'frontend-react', 'dist', 'index.html'));
-});
+// NOTA: La ruta catch-all para SPA se define al final del archivo (después de las rutas API)
 
 // 2. ENDPOINTS / RUTAS DE API
 
@@ -2114,6 +2111,12 @@ app.get('/api/roles', verificarToken, verificarAdmin, async (req, res) => {
     console.error('Error al obtener roles:', error);
     res.status(500).json({ message: 'Error al obtener roles', error: error.message });
   }
+});
+
+// ===== RUTA CATCH-ALL PARA SPA (debe ir después de todas las rutas API) =====
+// Usa regex en lugar de '*' para compatibilidad con Express 5
+app.get(/^(?!\/api).*/, (req, res) => {
+  res.sendFile(path.join(__dirname, 'frontend-react', 'dist', 'index.html'));
 });
 
 // 3. Inicia el servidor
