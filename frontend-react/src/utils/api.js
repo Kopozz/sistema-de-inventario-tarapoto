@@ -1,6 +1,6 @@
 // Utilidad para realizar llamadas a la API con token automático
-// Utilidad para realizar llamadas a la API con token automático
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+// En producción, usar URL relativa (mismo dominio). En desarrollo, usar localhost:3000
+const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3000')
 
 // Función para obtener el token actual
 export function getToken() {
