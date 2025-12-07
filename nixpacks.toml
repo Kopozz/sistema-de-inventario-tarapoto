@@ -1,0 +1,14 @@
+# Railway Configuration
+# Este archivo le dice a Railway cómo construir y ejecutar la aplicación
+
+[phases.setup]
+nixPkgs = ["nodejs_20"]
+
+[phases.install]
+cmds = ["npm install", "npm install --prefix frontend-react"]
+
+[phases.build]
+cmds = ["npm run build --prefix frontend-react"]
+
+[start]
+cmd = "node index.js"
