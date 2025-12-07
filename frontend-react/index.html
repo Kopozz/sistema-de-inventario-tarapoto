@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Favicons (usa el que tengas disponible). Cambia el número de versión si el navegador no actualiza -->
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="/assets/favicon.png?v=4"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="192x192"
+      href="/assets/favicon.png?v=4"
+    />
+    <link rel="shortcut icon" type="image/png" href="/assets/favicon.png?v=4" />
+    <link rel="apple-touch-icon" href="/assets/favicon.png?v=4" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Sistema de Inventario - Rectificación de Repuestos en Tarapoto S.A.C."
+    />
+    <title>Sistema de Inventario | Rectificación de Repuestos</title>
+
+    <!-- Aplicar tema inmediatamente para evitar parpadeo (FOUC - Flash of Unstyled Content) -->
+    <script>
+      (function () {
+        try {
+          const theme = localStorage.getItem("theme") || "dark";
+          if (document.body) {
+            document.body.className =
+              theme === "light" ? "light-mode" : "theme-dark";
+          }
+        } catch (e) {
+          console.error("Error aplicando tema inicial:", e);
+        }
+      })();
+
+
+    </script>
+
+    <script>
+      // Fuerza la actualización del favicon evitando caché de navegadores
+      (function () {
+        try {
+          var href = "/assets/favicon.png?v=" + Date.now();
+          var link = document.createElement("link");
+          link.rel = "icon";
+          link.type = "image/png";
+          link.href = href;
+          document.head.appendChild(link);
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

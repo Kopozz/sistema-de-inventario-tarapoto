@@ -1,0 +1,281 @@
+/* ===== ANIMATED ICONS CSS ===== */
+
+/* Contenedor base para todos los iconos */
+.animated-icon-container {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.animated-icon-container svg {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ========== ANIMACIONES ESPECÍFICAS POR ICONO ========== */
+
+/* Dashboard - Efecto de pulso suave */
+.icon-dashboard {
+  animation: iconPulse 2s ease-in-out infinite;
+}
+
+@keyframes iconPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.9; }
+}
+
+/* Products - Rotación suave en hover */
+.sidebar-item:hover .icon-products,
+.stat-card:hover .icon-products,
+.action-btn:hover .icon-products {
+  animation: iconRotate 0.6s ease-in-out;
+}
+
+@keyframes iconRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Categories - Escala y pulso */
+.sidebar-item:hover .icon-categories,
+.stat-card:hover .icon-categories,
+.action-btn:hover .icon-categories {
+  animation: iconBounce 0.5s ease-in-out;
+}
+
+@keyframes iconBounce {
+  0%, 100% { transform: scale(1); }
+  25% { transform: scale(1.1); }
+  50% { transform: scale(0.95); }
+  75% { transform: scale(1.05); }
+}
+
+/* Suppliers - Movimiento ondulante */
+.sidebar-item:hover .icon-suppliers,
+.stat-card:hover .icon-suppliers,
+.action-btn:hover .icon-suppliers {
+  animation: iconWave 0.6s ease-in-out;
+}
+
+@keyframes iconWave {
+  0%, 100% { transform: translateY(0); }
+  25% { transform: translateY(-3px); }
+  50% { transform: translateY(0); }
+  75% { transform: translateY(3px); }
+}
+
+/* Sales - Shake horizontal */
+.sidebar-item:hover .icon-sales,
+.stat-card:hover .icon-sales,
+.action-btn:hover .icon-sales {
+  animation: iconShake 0.5s ease-in-out;
+}
+
+@keyframes iconShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  50% { transform: translateX(3px); }
+  75% { transform: translateX(-3px); }
+}
+
+/* Inventory - Rotación 3D */
+.sidebar-item:hover .icon-inventory,
+.stat-card:hover .icon-inventory,
+.action-btn:hover .icon-inventory {
+  animation: iconFlip 0.6s ease-in-out;
+}
+
+@keyframes iconFlip {
+  0% { transform: rotateY(0deg); }
+  100% { transform: rotateY(360deg); }
+}
+
+/* Reports - Crecimiento desde abajo */
+.sidebar-item:hover .icon-reports,
+.stat-card:hover .icon-reports,
+.action-btn:hover .icon-reports {
+  animation: iconGrowUp 0.5s ease-in-out;
+}
+
+@keyframes iconGrowUp {
+  0% { transform: scaleY(0.8) translateY(5px); }
+  50% { transform: scaleY(1.1) translateY(-2px); }
+  100% { transform: scaleY(1) translateY(0); }
+}
+
+/* Settings - Rotación lenta */
+.sidebar-item:hover .icon-settings,
+.stat-card:hover .icon-settings,
+.action-btn:hover .icon-settings {
+  animation: iconSpinSlow 1s ease-in-out;
+}
+
+@keyframes iconSpinSlow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(180deg); }
+}
+
+/* Logout - Deslizamiento a la derecha */
+.sidebar-item:hover .icon-logout {
+  animation: iconSlideRight 0.4s ease-in-out;
+}
+
+@keyframes iconSlideRight {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(5px); }
+}
+
+/* Menu - Transformación hamburguesa */
+.menu-toggle:hover .icon-menu {
+  animation: iconMenuPulse 0.3s ease-in-out;
+}
+
+@keyframes iconMenuPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+/* Close - Rotación X */
+.menu-toggle:hover .icon-close {
+  animation: iconRotateClose 0.4s ease-in-out;
+}
+
+@keyframes iconRotateClose {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(90deg); }
+}
+
+/* Add - Pulso expansivo */
+.action-btn:hover .icon-add {
+  animation: iconPulseExpand 0.5s ease-in-out;
+}
+
+@keyframes iconPulseExpand {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+/* Edit - Movimiento de escritura */
+.btn-icon:hover .icon-edit {
+  animation: iconWrite 0.5s ease-in-out;
+}
+
+@keyframes iconWrite {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(-2px, -2px) rotate(-5deg); }
+  75% { transform: translate(2px, 2px) rotate(5deg); }
+}
+
+/* Delete - Sacudida */
+.btn-icon:hover .icon-delete {
+  animation: iconShakeDelete 0.4s ease-in-out;
+}
+
+@keyframes iconShakeDelete {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-10deg); }
+  50% { transform: rotate(10deg); }
+  75% { transform: rotate(-10deg); }
+}
+
+/* ========== EFECTOS HOVER EN CONTENEDORES ========== */
+
+/* Stat Cards */
+.stat-card:hover .animated-icon-container {
+  transform: scale(1.08) translateY(-2px);
+  filter: drop-shadow(0 4px 12px rgba(249, 115, 22, 0.5));
+}
+
+/* Action Buttons */
+.action-btn:hover .animated-icon-container {
+  transform: scale(1.12);
+  filter: drop-shadow(0 2px 8px rgba(249, 115, 22, 0.4));
+}
+
+/* Sidebar Items */
+.sidebar-item:hover .animated-icon-container {
+  transform: translateX(4px) scale(1.05);
+  filter: drop-shadow(0 0 6px rgba(249, 115, 22, 0.6));
+}
+
+/* Sidebar Active */
+.sidebar-item.active .animated-icon-container {
+  filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.8));
+  transform: scale(1.05);
+}
+
+/* Logo sidebar - animación continua */
+.sidebar-logo .animated-icon-container {
+  animation: logoFloat 3s ease-in-out infinite;
+}
+
+@keyframes logoFloat {
+  0%, 100% { 
+    transform: translateY(0) scale(1);
+    filter: drop-shadow(0 0 4px rgba(249, 115, 22, 0.4));
+  }
+  50% { 
+    transform: translateY(-3px) scale(1.03);
+    filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.6));
+  }
+}
+
+/* Menu Toggle */
+.menu-toggle:hover .animated-icon-container {
+  transform: scale(1.1);
+  filter: drop-shadow(0 0 6px rgba(249, 115, 22, 0.5));
+}
+
+/* Activity Items */
+.activity-item:hover .animated-icon-container {
+  transform: scale(1.1);
+}
+
+/* ========== ANIMACIÓN DE ENTRADA ========== */
+.animated-icon-container {
+  animation: fadeInIcon 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeInIcon {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ========== GLOW EFFECT ========== */
+.animated-icon-container svg {
+  filter: drop-shadow(0 0 2px rgba(249, 115, 22, 0.2));
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+  .stat-card .animated-icon-container,
+  .action-btn .animated-icon-container,
+  .sidebar-item .animated-icon-container {
+    transform: scale(0.95);
+  }
+  
+  .stat-card:hover .animated-icon-container {
+    transform: scale(1.05) translateY(-1px);
+  }
+  
+  .action-btn:hover .animated-icon-container {
+    transform: scale(1.08);
+  }
+  
+  .sidebar-item:hover .animated-icon-container {
+    transform: translateX(2px) scale(1.02);
+  }
+}
+
+/* ========== SMOOTH TRANSITIONS ========== */
+.animated-icon-container *,
+.animated-icon-container svg * {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
