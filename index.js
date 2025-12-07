@@ -159,13 +159,13 @@ app.get('/api/categorias', verificarToken, async (req, res) => {
   try {
   // Traer categorias con conteo de productos y prefijo de código
   const [categorias] = await pool.query(`
-    SELECT c.idCategoria, c.nombre, c.descripcion, c.estado, c.codigoPrefix,
-           COUNT(p.idProducto) AS totalProductos,
-           GROUP_CONCAT(p.nombre ORDER BY p.nombre SEPARATOR '\\n') AS productos
-    FROM Categoria c
-    LEFT JOIN Producto p ON p.idCategoria = c.idCategoria
-    GROUP BY c.idCategoria
-    ORDER BY c.idCategoria
+    SELECT c."idCategoria", c.nombre, c.descripcion, c.estado, c."codigoPrefix",
+           COUNT(p."idProducto") AS "totalProductos",
+           STRING_AGG(p.nombre, E'\n' ORDER BY p.nombre) AS productos
+    FROM "Categoria" c
+    LEFT JOIN "Producto" p ON p."idCategoria" = c."idCategoria"
+    GROUP BY c."idCategoria"
+    ORDER BY c."idCategoria"
   `);
     res.status(200).json({
       categorias
@@ -184,13 +184,13 @@ app.get('/api/categorias/:id', verificarToken, async (req, res) => {
   try {
     const { id } = req.params;
   const [categorias] = await pool.query(`
-    SELECT c.idCategoria, c.nombre, c.descripcion, c.estado,
-           COUNT(p.idProducto) AS totalProductos,
-           GROUP_CONCAT(p.nombre ORDER BY p.nombre SEPARATOR '\\n') AS productos
-    FROM Categoria c
-    LEFT JOIN Producto p ON p.idCategoria = c.idCategoria
-    WHERE c.idCategoria = ?
-    GROUP BY c.idCategoria
+    SELECT c."idCategoria", c.nombre, c.descripcion, c.estado,
+           COUNT(p."idProducto") AS "totalProductos",
+           STRING_AGG(p.nombre, E'\n' ORDER BY p.nombre) AS productos
+    FROM "Categoria" c
+    LEFT JOIN "Producto" p ON p."idCategoria" = c."idCategoria"
+    WHERE c."idCategoria" = ?
+    GROUP BY c."idCategoria"
   `, [id]);
     if (categorias.length === 0) {
       return res.status(404).json({ message: 'Categoría no encontrada' });
@@ -1666,7 +1666,7 @@ app.get('/api/estadisticas/dashboard', verificarToken, async (req, res) => {
     
     // Ventas de hoy
     const [ventasHoy] = await pool.query(
-      'SELECT COUNT(*) as total, COALESCE(SUM(montoTotal), 0) as monto FROM Venta WHERE DATE(fechaHora) = CURDATE()'
+      'SELECT COUNT(*) as total, COALESCE(SUM("montoTotal"), 0) as monto FROM "Venta" WHERE DATE("fechaHora") = CURRENT_DATE'
     );
     
     // Ventas del mes
@@ -1720,12 +1720,12 @@ app.get('/api/estadisticas/dashboard', verificarToken, async (req, res) => {
 
     // Ventas por día (últimos 7 días) para gráfico
     const [ventasPorDia] = await pool.query(`
-      SELECT DATE(fechaHora) as fecha, 
+      SELECT DATE("fechaHora") as fecha, 
              COUNT(*) as cantidad, 
-             COALESCE(SUM(montoTotal), 0) as total
-      FROM Venta
-      WHERE fechaHora >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
-      GROUP BY DATE(fechaHora)
+             COALESCE(SUM("montoTotal"), 0) as total
+      FROM "Venta"
+      WHERE "fechaHora" >= CURRENT_DATE - INTERVAL '7 days'
+      GROUP BY DATE("fechaHora")
       ORDER BY fecha ASC
     `);
     
@@ -1938,14 +1938,14 @@ app.get('/api/usuarios', verificarToken, verificarAdmin, async (req, res) => {
       SELECT u.idUsuario, u.nombre, u.email, u.telefono, u.fotoPerfil,
         u.direccion, u.fechaNacimiento, u.cargo, u.biografia,
         u.estado, u.fechaHoraCreacion AS fechaCreacion, u.fechaFinSesion,
-        u.idRol, r.nombreRol,
+        u."idRol", r."nombreRol",
         CASE 
-          WHEN u.fechaFinSesion IS NULL THEN 0
-          WHEN u.fechaFinSesion >= NOW() - INTERVAL 1 MINUTE THEN 0
+          WHEN u."fechaFinSesion" IS NULL THEN 0
+          WHEN u."fechaFinSesion" >= NOW() - INTERVAL '1 minute' THEN 0
           ELSE 0
-        END AS enLinea
-      FROM Usuario u
-      INNER JOIN Rol r ON u.idRol = r.idRol
+        END AS "enLinea"
+      FROM "Usuario" u
+      INNER JOIN "Rol" r ON u."idRol" = r."idRol"
       WHERE 1=1
     `;
     
