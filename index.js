@@ -156,13 +156,13 @@ app.get('/api/categorias', verificarToken, async (req, res) => {
   try {
   // Traer categorias con conteo de productos y prefijo de código
   const [categorias] = await pool.query(`
-    SELECT c."idCategoria", c.nombre, c.descripcion, c.estado, c."codigoPrefix",
-           COUNT(p."idProducto") AS "totalProductos",
+    SELECT c.idcategoria, c.nombre, c.descripcion, c.estado, c.codigoprefix,
+           COUNT(p.idproducto) AS totalproductos,
            STRING_AGG(p.nombre, E'\n' ORDER BY p.nombre) AS productos
-    FROM "Categoria" c
-    LEFT JOIN "Producto" p ON p."idCategoria" = c."idCategoria"
-    GROUP BY c."idCategoria"
-    ORDER BY c."idCategoria"
+    FROM categoria c
+    LEFT JOIN producto p ON p.idcategoria = c.idcategoria
+    GROUP BY c.idcategoria
+    ORDER BY c.idcategoria
   `);
     res.status(200).json({
       categorias
@@ -181,13 +181,13 @@ app.get('/api/categorias/:id', verificarToken, async (req, res) => {
   try {
     const { id } = req.params;
   const [categorias] = await pool.query(`
-    SELECT c."idCategoria", c.nombre, c.descripcion, c.estado,
-           COUNT(p."idProducto") AS "totalProductos",
+    SELECT c.idcategoria, c.nombre, c.descripcion, c.estado,
+           COUNT(p.idproducto) AS totalproductos,
            STRING_AGG(p.nombre, E'\n' ORDER BY p.nombre) AS productos
-    FROM "Categoria" c
-    LEFT JOIN "Producto" p ON p."idCategoria" = c."idCategoria"
-    WHERE c."idCategoria" = ?
-    GROUP BY c."idCategoria"
+    FROM categoria c
+    LEFT JOIN producto p ON p.idcategoria = c.idcategoria
+    WHERE c.idcategoria = ?
+    GROUP BY c.idcategoria
   `, [id]);
     if (categorias.length === 0) {
       return res.status(404).json({ message: 'Categoría no encontrada' });
@@ -1663,7 +1663,7 @@ app.get('/api/estadisticas/dashboard', verificarToken, async (req, res) => {
     
     // Ventas de hoy
     const [ventasHoy] = await pool.query(
-      'SELECT COUNT(*) as total, COALESCE(SUM("montoTotal"), 0) as monto FROM "Venta" WHERE DATE("fechaHora") = CURRENT_DATE'
+      'SELECT COUNT(*) as total, COALESCE(SUM(montototal), 0) as monto FROM venta WHERE DATE(fechahora) = CURRENT_DATE'
     );
     
     // Ventas del mes
@@ -1717,12 +1717,12 @@ app.get('/api/estadisticas/dashboard', verificarToken, async (req, res) => {
 
     // Ventas por día (últimos 7 días) para gráfico
     const [ventasPorDia] = await pool.query(`
-      SELECT DATE("fechaHora") as fecha, 
+      SELECT DATE(fechahora) as fecha, 
              COUNT(*) as cantidad, 
-             COALESCE(SUM("montoTotal"), 0) as total
-      FROM "Venta"
-      WHERE "fechaHora" >= CURRENT_DATE - INTERVAL '7 days'
-      GROUP BY DATE("fechaHora")
+             COALESCE(SUM(montototal), 0) as total
+      FROM venta
+      WHERE fechahora >= CURRENT_DATE - INTERVAL '7 days'
+      GROUP BY DATE(fechahora)
       ORDER BY fecha ASC
     `);
     
@@ -1815,6 +1815,29 @@ app.get('/api/estadisticas/stock-bajo', verificarToken, async (req, res) => {
 });
 
 // ===== ENDPOINTS DE GESTIÓN DE PERFILES =====
+
+// Obtener perfil del usuario actual
+app.get('/api/usuarios/perfil', verificarToken, async (req, res) => {
+  try {
+    const { idUsuario } = req.usuario;
+    const [usuarios] = await pool.query(
+      `SELECT u.idusuario, u.nombre, u.nombrecompleto, u.email, u.telefono, u.fotoperfil,
+        u.direccion, u.fechanacimiento, u.cargo, u.biografia,
+        u.estado, u.fechahoracreacion AS fechacreacion, u.idrol, r.nombrerol
+       FROM usuario u
+       INNER JOIN rol r ON u.idrol = r.idrol
+       WHERE u.idusuario = ?`,
+      [idUsuario]
+    );
+    if (usuarios.length === 0) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+    res.status(200).json({ usuario: usuarios[0] });
+  } catch (error) {
+    console.error('Error al obtener perfil:', error);
+    res.status(500).json({ message: 'Error al obtener usuario', error: error.message });
+  }
+});
 
 // Actualizar perfil del usuario actual
 app.put('/api/usuarios/perfil', verificarToken, async (req, res) => {
@@ -1932,17 +1955,17 @@ app.get('/api/usuarios', verificarToken, verificarAdmin, async (req, res) => {
     const { estado, rol } = req.query;
     
     let query = `
-      SELECT u.idUsuario, u.nombre, u.email, u.telefono, u.fotoPerfil,
-        u.direccion, u.fechaNacimiento, u.cargo, u.biografia,
-        u.estado, u.fechaHoraCreacion AS fechaCreacion, u.fechaFinSesion,
-        u."idRol", r."nombreRol",
+      SELECT u.idusuario, u.nombre, u.email, u.telefono, u.fotoperfil,
+        u.direccion, u.fechanacimiento, u.cargo, u.biografia,
+        u.estado, u.fechahoracreacion AS fechacreacion, u.fechafinsesion,
+        u.idrol, r.nombrerol,
         CASE 
-          WHEN u."fechaFinSesion" IS NULL THEN 0
-          WHEN u."fechaFinSesion" >= NOW() - INTERVAL '1 minute' THEN 0
+          WHEN u.fechafinsesion IS NULL THEN 0
+          WHEN u.fechafinsesion >= NOW() - INTERVAL '1 minute' THEN 0
           ELSE 0
-        END AS "enLinea"
-      FROM "Usuario" u
-      INNER JOIN "Rol" r ON u."idRol" = r."idRol"
+        END AS enlinea
+      FROM usuario u
+      INNER JOIN rol r ON u.idrol = r.idrol
       WHERE 1=1
     `;
     
