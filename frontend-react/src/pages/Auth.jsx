@@ -8,7 +8,9 @@ import { useToast } from '../components/ToastProvider'
 // Registrar el loader
 mirage.register()
 
-const API_BASE = 'http://localhost:3000'
+// Detectar producción por hostname (no localhost = producción)
+const isProduction = typeof window !== 'undefined' && !window.location.hostname.includes('localhost');
+const API_BASE = isProduction ? '' : 'http://localhost:3000'
 
 export default function Auth() {
   const [darkMode, setDarkMode] = useState(true)
