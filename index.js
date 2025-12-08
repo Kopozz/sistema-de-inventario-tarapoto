@@ -2248,17 +2248,29 @@ const server = app.listen(PORT, async () => {
   console.log(`📊 Entorno: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔐 JWT configurado: ${JWT_SECRET !== 'inventarioSecretKey2025' ? 'Personalizado ✓' : 'Por defecto (cambiar en producción) ⚠️'}`);
   
-  // Inicializar servicios adicionales
+  // Inicializar servicios adicionales (con manejo de errores)
   console.log(`\n--- Inicializando Servicios Adicionales ---`);
   
-  // Redis (Caché)
-  cacheService.initRedis();
+  // Redis (Caché) - Opcional
+  try {
+    cacheService.initRedis();
+  } catch (error) {
+    console.log('⚠️ Redis no disponible:', error.message);
+  }
   
-  // Storage (Bucket para imágenes)
-  storageService.initStorage();
+  // Storage (Bucket para imágenes) - Opcional
+  try {
+    storageService.initStorage();
+  } catch (error) {
+    console.log('⚠️ Storage no disponible:', error.message);
+  }
   
-  // Cron Jobs (Reportes automáticos)
-  cronService.initCronJobs(pool);
+  // Cron Jobs (Reportes automáticos) - Opcional
+  try {
+    cronService.initCronJobs(pool);
+  } catch (error) {
+    console.log('⚠️ Cron Jobs no disponibles:', error.message);
+  }
   
   console.log(`--------------------------------------------`);
   console.log(`========================================`);
@@ -2270,10 +2282,14 @@ process.on('SIGINT', async () => {
   console.log('\n🔴 Cerrando servidor...');
   
   // Detener cron jobs
-  cronService.stopAllJobs();
+  try {
+    cronService.stopAllJobs();
+  } catch (e) { /* ignorar */ }
   
   // Cerrar Redis
-  await cacheService.closeRedis();
+  try {
+    await cacheService.closeRedis();
+  } catch (e) { /* ignorar */ }
   
   server.close();
   await pool.end();
