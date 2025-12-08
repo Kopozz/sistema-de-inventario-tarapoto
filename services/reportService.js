@@ -1,6 +1,7 @@
 /**
  * Servicio de Generación de Reportes
  * Genera reportes de ventas y alertas de stock bajo
+ * Compatible con PostgreSQL
  */
 
 const nodemailer = require('nodemailer');
@@ -11,18 +12,23 @@ let transporter = null;
 
 function initTransporter() {
   if (!transporter) {
-    transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.EMAIL_PORT) || 587,
-      secure: false,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD
-      },
-      tls: {
-        rejectUnauthorized: false
-      }
-    });
+    try {
+      transporter = nodemailer.createTransport({
+        host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+        port: parseInt(process.env.EMAIL_PORT) || 587,
+        secure: false,
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASSWORD
+        },
+        tls: {
+          rejectUnauthorized: false
+        }
+      });
+    } catch (error) {
+      console.log('⚠️ No se pudo configurar el transporter de email:', error.message);
+      return null;
+    }
   }
   return transporter;
 }
@@ -36,54 +42,57 @@ async function generateDailyReport(pool) {
   yesterday.setDate(yesterday.getDate() - 1);
   
   const fechaInicio = yesterday.toISOString().split('T')[0];
-  const fechaFin = today.toISOString().split('T')[0];
 
   try {
-    // Obtener ventas del día anterior
-    const [ventas] = await pool.query(`
+    // Obtener ventas del día anterior (PostgreSQL)
+    const ventasResult = await pool.query(`
       SELECT v.*, u.nombre as vendedor
-      FROM Venta v
-      LEFT JOIN Usuario u ON v.idUsuario = u.idUsuario
-      WHERE DATE(v.fechaHora) = ?
-      ORDER BY v.fechaHora DESC
+      FROM "Venta" v
+      LEFT JOIN "Usuario" u ON v."idUsuario" = u."idUsuario"
+      WHERE DATE(v."fechaHora") = $1
+      ORDER BY v."fechaHora" DESC
     `, [fechaInicio]);
+    const ventas = ventasResult.rows || [];
 
     // Obtener totales
-    const [totales] = await pool.query(`
+    const totalesResult = await pool.query(`
       SELECT 
-        COUNT(*) as totalVentas,
-        COALESCE(SUM(total), 0) as totalMonto
-      FROM Venta 
-      WHERE DATE(fechaHora) = ?
+        COUNT(*) as "totalVentas",
+        COALESCE(SUM(total), 0) as "totalMonto"
+      FROM "Venta" 
+      WHERE DATE("fechaHora") = $1
     `, [fechaInicio]);
+    const totales = totalesResult.rows[0] || { totalVentas: 0, totalMonto: 0 };
 
     // Obtener productos más vendidos
-    const [topProductos] = await pool.query(`
-      SELECT p.nombre, SUM(dv.cantidad) as cantidadVendida, SUM(dv.subtotal) as totalVendido
-      FROM DetalleVenta dv
-      JOIN Producto p ON dv.idProducto = p.idProducto
-      JOIN Venta v ON dv.idVenta = v.idVenta
-      WHERE DATE(v.fechaHora) = ?
-      GROUP BY p.idProducto, p.nombre
-      ORDER BY cantidadVendida DESC
+    const topProductosResult = await pool.query(`
+      SELECT p.nombre, SUM(dv.cantidad) as "cantidadVendida", SUM(dv.subtotal) as "totalVendido"
+      FROM "DetalleVenta" dv
+      JOIN "Producto" p ON dv."idProducto" = p."idProducto"
+      JOIN "Venta" v ON dv."idVenta" = v."idVenta"
+      WHERE DATE(v."fechaHora") = $1
+      GROUP BY p."idProducto", p.nombre
+      ORDER BY "cantidadVendida" DESC
       LIMIT 5
     `, [fechaInicio]);
+    const topProductos = topProductosResult.rows || [];
 
     // Obtener productos con stock bajo
-    const [stockBajo] = await pool.query(`
-      SELECT nombre, codigo, stockActual, stockMinimo
-      FROM Producto
-      WHERE stockActual <= stockMinimo AND estado = 1
-      ORDER BY stockActual ASC
+    const stockBajoResult = await pool.query(`
+      SELECT nombre, codigo, "stockActual", "stockMinimo"
+      FROM "Producto"
+      WHERE "stockActual" <= "stockMinimo" AND estado = 1
+      ORDER BY "stockActual" ASC
       LIMIT 10
     `);
+    const stockBajo = stockBajoResult.rows || [];
 
     // Guardar reporte en BD
     const reporteData = {
       fecha: fechaInicio,
       tipo: 'diario',
-      totalVentas: totales[0].totalVentas,
-      totalMonto: totales[0].totalMonto,
+      totalVentas: parseInt(totales.totalVentas) || 0,
+      totalMonto: parseFloat(totales.totalMonto) || 0,
       topProductos,
       stockBajo: stockBajo.length,
       generadoEn: new Date().toISOString()
@@ -95,11 +104,12 @@ async function generateDailyReport(pool) {
     await sendDailyReportEmail({
       fecha: fechaInicio,
       ventas: ventas.length,
-      totalMonto: totales[0].totalMonto,
+      totalMonto: parseFloat(totales.totalMonto) || 0,
       topProductos,
       stockBajo
     });
 
+    console.log('✅ Reporte diario generado:', reporteData);
     return { success: true, data: reporteData };
 
   } catch (error) {
@@ -113,16 +123,17 @@ async function generateDailyReport(pool) {
  */
 async function checkLowStock(pool) {
   try {
-    const [productos] = await pool.query(`
+    const result = await pool.query(`
       SELECT 
-        p.idProducto, p.nombre, p.codigo, p.stockActual, p.stockMinimo,
+        p."idProducto", p.nombre, p.codigo, p."stockActual", p."stockMinimo",
         c.nombre as categoria
-      FROM Producto p
-      LEFT JOIN Categoria c ON p.idCategoria = c.idCategoria
-      WHERE p.stockActual <= p.stockMinimo 
+      FROM "Producto" p
+      LEFT JOIN "Categoria" c ON p."idCategoria" = c."idCategoria"
+      WHERE p."stockActual" <= p."stockMinimo" 
         AND p.estado = 1
-      ORDER BY p.stockActual ASC
+      ORDER BY p."stockActual" ASC
     `);
+    const productos = result.rows || [];
 
     if (productos.length === 0) {
       console.log('✅ No hay productos con stock bajo');
@@ -161,23 +172,23 @@ async function checkLowStock(pool) {
 }
 
 /**
- * Guardar reporte en la base de datos
+ * Guardar reporte en la base de datos (PostgreSQL)
  */
 async function saveReportToDatabase(pool, reporteData) {
   try {
-    // Verificar si existe la tabla, si no, crearla
+    // Verificar si existe la tabla, si no, crearla (PostgreSQL syntax)
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS ReporteAutomatico (
-        idReporte INT AUTO_INCREMENT PRIMARY KEY,
+      CREATE TABLE IF NOT EXISTS "ReporteAutomatico" (
+        "idReporte" SERIAL PRIMARY KEY,
         fecha DATE NOT NULL,
         tipo VARCHAR(50) NOT NULL,
-        datos JSON,
-        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        datos JSONB,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
     await pool.query(
-      'INSERT INTO ReporteAutomatico (fecha, tipo, datos) VALUES (?, ?, ?)',
+      'INSERT INTO "ReporteAutomatico" (fecha, tipo, datos) VALUES ($1, $2, $3)',
       [reporteData.fecha, reporteData.tipo, JSON.stringify(reporteData)]
     );
 
@@ -253,15 +264,15 @@ async function sendLowStockAlert(productos) {
  * Template HTML para reporte diario
  */
 function getDailyReportTemplate(data) {
-  const productosHtml = data.topProductos.map(p => `
+  const productosHtml = (data.topProductos || []).map(p => `
     <tr>
       <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${p.nombre}</td>
       <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${p.cantidadVendida}</td>
-      <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">S/ ${parseFloat(p.totalVendido).toFixed(2)}</td>
+      <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">S/ ${parseFloat(p.totalVendido || 0).toFixed(2)}</td>
     </tr>
   `).join('');
 
-  const stockBajoHtml = data.stockBajo.length > 0 
+  const stockBajoHtml = (data.stockBajo || []).length > 0 
     ? data.stockBajo.map(p => `
         <tr style="background: ${p.stockActual === 0 ? '#fee2e2' : '#fef3c7'};">
           <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${p.codigo}</td>
@@ -290,19 +301,17 @@ function getDailyReportTemplate(data) {
     </div>
     
     <div style="padding: 30px;">
-      <!-- Resumen -->
       <div style="display: flex; gap: 20px; margin-bottom: 30px;">
         <div style="flex: 1; background: #eff6ff; padding: 20px; border-radius: 8px; text-align: center;">
-          <div style="font-size: 32px; font-weight: bold; color: #1d4ed8;">${data.ventas}</div>
+          <div style="font-size: 32px; font-weight: bold; color: #1d4ed8;">${data.ventas || 0}</div>
           <div style="color: #6b7280; font-size: 14px;">Ventas Realizadas</div>
         </div>
         <div style="flex: 1; background: #f0fdf4; padding: 20px; border-radius: 8px; text-align: center;">
-          <div style="font-size: 32px; font-weight: bold; color: #16a34a;">S/ ${parseFloat(data.totalMonto).toFixed(2)}</div>
+          <div style="font-size: 32px; font-weight: bold; color: #16a34a;">S/ ${parseFloat(data.totalMonto || 0).toFixed(2)}</div>
           <div style="color: #6b7280; font-size: 14px;">Total Recaudado</div>
         </div>
       </div>
       
-      <!-- Top Productos -->
       <h3 style="color: #1f2937; margin-bottom: 15px;">🏆 Productos Más Vendidos</h3>
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
         <thead>
@@ -317,7 +326,6 @@ function getDailyReportTemplate(data) {
         </tbody>
       </table>
       
-      <!-- Stock Bajo -->
       <h3 style="color: #1f2937; margin-bottom: 15px;">⚠️ Alertas de Stock Bajo</h3>
       <table style="width: 100%; border-collapse: collapse;">
         <thead>
@@ -350,7 +358,7 @@ function getDailyReportTemplate(data) {
  * Template HTML para alerta de stock bajo
  */
 function getLowStockTemplate(productos) {
-  const productosHtml = productos.map(p => `
+  const productosHtml = (productos || []).map(p => `
     <tr style="background: ${p.stockActual === 0 ? '#fee2e2' : 'white'};">
       <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${p.codigo}</td>
       <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${p.nombre}</td>
@@ -362,7 +370,7 @@ function getLowStockTemplate(productos) {
     </tr>
   `).join('');
 
-  const criticos = productos.filter(p => p.stockActual === 0).length;
+  const criticos = (productos || []).filter(p => p.stockActual === 0).length;
 
   return `
 <!DOCTYPE html>
@@ -376,7 +384,7 @@ function getLowStockTemplate(productos) {
     
     <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 30px; text-align: center;">
       <h1 style="color: white; margin: 0; font-size: 24px;">⚠️ Alerta de Stock Bajo</h1>
-      <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">${productos.length} productos necesitan reposición</p>
+      <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">${(productos || []).length} productos necesitan reposición</p>
     </div>
     
     <div style="padding: 30px;">
@@ -421,15 +429,15 @@ function getLowStockTemplate(productos) {
 }
 
 /**
- * Obtener historial de reportes
+ * Obtener historial de reportes (PostgreSQL)
  */
 async function getReportHistory(pool, limit = 10) {
   try {
-    const [reportes] = await pool.query(
-      'SELECT * FROM ReporteAutomatico ORDER BY createdAt DESC LIMIT ?',
+    const result = await pool.query(
+      'SELECT * FROM "ReporteAutomatico" ORDER BY "createdAt" DESC LIMIT $1',
       [limit]
     );
-    return reportes;
+    return result.rows || [];
   } catch (error) {
     console.error('Error obteniendo historial:', error.message);
     return [];
