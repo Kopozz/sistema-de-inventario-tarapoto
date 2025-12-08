@@ -2836,7 +2836,7 @@ function ReportsView({ isAdmin }) {
         
         if (response.ok) {
             const data = await response.json()
-            setVentas(data.ventas || [])
+            setVentasReporte(data.ventas || [])
             
             if (data.ventas?.length > 0) {
                 toast.success(`Se encontraron ${data.ventas.length} ventas`)

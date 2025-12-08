@@ -13,6 +13,14 @@ import crypto from 'crypto';
 import { enviarEmailRecuperacion, enviarEmailConfirmacionCambio } from './emailService.js';
 import { setupSwagger } from './swagger.js';
 
+// ===== SERVICIOS ADICIONALES =====
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const cacheService = require('./services/cacheService.js');
+const storageService = require('./services/storageService.js');
+const cronService = require('./services/cronService.js');
+const reportService = require('./services/reportService.js');
+
 // Cargar variables de entorno
 dotenv.config();
 
@@ -2136,6 +2144,97 @@ app.get('/api/roles', verificarToken, verificarAdmin, async (req, res) => {
   }
 });
 
+// ===== ENDPOINTS DE REPORTES AUTOMÁTICOS =====
+
+// Ejecutar reporte manualmente (solo admin)
+app.post('/api/reportes/ejecutar', verificarToken, verificarAdmin, async (req, res) => {
+  try {
+    const { tipo } = req.body; // 'daily' o 'stock'
+    const result = await cronService.runManualReport(pool, tipo || 'daily');
+    
+    if (result.success) {
+      res.json({ 
+        message: `Reporte ${tipo || 'diario'} ejecutado correctamente`,
+        data: result.data || result
+      });
+    } else {
+      res.status(500).json({ 
+        message: 'Error al ejecutar reporte',
+        error: result.error 
+      });
+    }
+  } catch (error) {
+    console.error('Error al ejecutar reporte manual:', error);
+    res.status(500).json({ message: 'Error al ejecutar reporte', error: error.message });
+  }
+});
+
+// Obtener historial de reportes (solo admin)
+app.get('/api/reportes/historial', verificarToken, verificarAdmin, async (req, res) => {
+  try {
+    const limite = parseInt(req.query.limite) || 20;
+    const reportes = await reportService.getReportHistory(pool, limite);
+    res.json({ reportes });
+  } catch (error) {
+    console.error('Error al obtener historial:', error);
+    res.status(500).json({ message: 'Error al obtener historial', error: error.message });
+  }
+});
+
+// Estado de los servicios (solo admin)
+app.get('/api/servicios/estado', verificarToken, verificarAdmin, async (req, res) => {
+  try {
+    res.json({
+      redis: {
+        conectado: cacheService.isRedisConnected(),
+        descripcion: 'Caché para acelerar consultas'
+      },
+      storage: {
+        configurado: storageService.isBucketConfigured(),
+        descripcion: 'Almacenamiento de imágenes'
+      },
+      cronJobs: {
+        activos: cronService.getJobsStatus(),
+        descripcion: 'Tareas programadas automáticas'
+      }
+    });
+  } catch (error) {
+    console.error('Error al obtener estado de servicios:', error);
+    res.status(500).json({ message: 'Error al obtener estado', error: error.message });
+  }
+});
+
+// Limpiar caché manualmente (solo admin)
+app.post('/api/cache/limpiar', verificarToken, verificarAdmin, async (req, res) => {
+  try {
+    const { tipo } = req.body; // 'productos', 'categorias', 'proveedores', 'ventas', 'todo'
+    
+    switch (tipo) {
+      case 'productos':
+        await cacheService.invalidateProductos();
+        break;
+      case 'categorias':
+        await cacheService.invalidateCategorias();
+        break;
+      case 'proveedores':
+        await cacheService.invalidateProveedores();
+        break;
+      case 'ventas':
+        await cacheService.invalidateVentas();
+        break;
+      case 'todo':
+      default:
+        await cacheService.delByPattern('*');
+        break;
+    }
+    
+    res.json({ message: `Caché ${tipo || 'completo'} limpiado correctamente` });
+  } catch (error) {
+    console.error('Error al limpiar caché:', error);
+    res.status(500).json({ message: 'Error al limpiar caché', error: error.message });
+  }
+});
+
 // ===== RUTA CATCH-ALL PARA SPA (debe ir después de todas las rutas API) =====
 // Usa regex en lugar de '*' para compatibilidad con Express 5
 app.get(/^(?!\/api).*/, (req, res) => {
@@ -2143,11 +2242,25 @@ app.get(/^(?!\/api).*/, (req, res) => {
 });
 
 // 3. Inicia el servidor
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
   console.log(`========================================`);
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
   console.log(`📊 Entorno: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔐 JWT configurado: ${JWT_SECRET !== 'inventarioSecretKey2025' ? 'Personalizado ✓' : 'Por defecto (cambiar en producción) ⚠️'}`);
+  
+  // Inicializar servicios adicionales
+  console.log(`\n--- Inicializando Servicios Adicionales ---`);
+  
+  // Redis (Caché)
+  cacheService.initRedis();
+  
+  // Storage (Bucket para imágenes)
+  storageService.initStorage();
+  
+  // Cron Jobs (Reportes automáticos)
+  cronService.initCronJobs(pool);
+  
+  console.log(`--------------------------------------------`);
   console.log(`========================================`);
   console.log(`Presiona Ctrl+C para detener el servidor`);
 });
@@ -2155,7 +2268,15 @@ const server = app.listen(PORT, () => {
 // Manejar cierre graceful del servidor
 process.on('SIGINT', async () => {
   console.log('\n🔴 Cerrando servidor...');
+  
+  // Detener cron jobs
+  cronService.stopAllJobs();
+  
+  // Cerrar Redis
+  await cacheService.closeRedis();
+  
   server.close();
   await pool.end();
+  console.log('✅ Servidor cerrado correctamente');
   process.exit(0);
 });

@@ -1,5 +1,7 @@
 // Utilidad para realizar llamadas a la API con token automático
 // En producción (no localhost), usar URL relativa. En desarrollo, usar localhost:3000
+import { useEffect } from 'react'
+
 const isProduction = typeof window !== 'undefined' && !window.location.hostname.includes('localhost');
 const API_BASE = import.meta.env.VITE_API_URL || (isProduction ? '' : 'http://localhost:3000')
 
@@ -85,7 +87,7 @@ export async function refreshTokenIfNeeded() {
 
 // Hook para usar en componentes de React
 export function useAutoRefreshToken() {
-  React.useEffect(() => {
+  useEffect(() => {
     // Verificar cada 5 minutos
     const interval = setInterval(refreshTokenIfNeeded, 5 * 60 * 1000)
     
