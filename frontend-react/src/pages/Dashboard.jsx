@@ -3477,27 +3477,46 @@ function UsersView() {
                     </span>
                   </td>
                   <td>
-                    <span style={{
-                      padding: '0.25rem 0.75rem',
-                      borderRadius: '6px',
-                      fontSize: '0.875rem',
-                      fontWeight: 600,
-                      background: user.enSesion === 1 ? 'rgba(16, 185, 129, 0.2)' : 'rgba(156, 163, 175, 0.2)',
-                      color: user.enSesion === 1 ? '#10b981' : '#9ca3af',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.5rem'
-                    }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      {/* Estado de cuenta (Activo/Inactivo) - Lo que el filtro usa */}
                       <span style={{
-                        width: '8px',
-                        height: '8px',
-                        borderRadius: '50%',
-                        background: user.enSesion === 1 ? '#10b981' : '#9ca3af',
-                        boxShadow: user.enSesion === 1 ? '0 0 8px rgba(16, 185, 129, 0.6)' : 'none',
-                        animation: user.enSesion === 1 ? 'pulse 2s infinite' : 'none'
-                      }}></span>
-                      {user.enSesion === 1 ? 'Conectado' : 'Desconectado'}
-                    </span>
+                        padding: '0.25rem 0.75rem',
+                        borderRadius: '6px',
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                        background: user.estado === 1 ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                        color: user.estado === 1 ? '#10b981' : '#ef4444',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}>
+                        <span style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          background: user.estado === 1 ? '#10b981' : '#ef4444'
+                        }}></span>
+                        {user.estado === 1 ? 'Activo' : 'Inactivo'}
+                      </span>
+                      {/* Indicador de conexión (secundario) */}
+                      <span style={{
+                        fontSize: '0.75rem',
+                        color: user.enSesion === 1 ? '#10b981' : '#6b7280',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.25rem'
+                      }}>
+                        <span style={{
+                          width: '6px',
+                          height: '6px',
+                          borderRadius: '50%',
+                          background: user.enSesion === 1 ? '#10b981' : '#6b7280',
+                          boxShadow: user.enSesion === 1 ? '0 0 6px rgba(16, 185, 129, 0.6)' : 'none',
+                          animation: user.enSesion === 1 ? 'pulse 2s infinite' : 'none'
+                        }}></span>
+                        {user.enSesion === 1 ? 'En línea' : 'Desconectado'}
+                      </span>
+                    </div>
                   </td>
                   <td>{user.telefono || '-'}</td>
                   <td>{formatDate(user.fechaCreacion)}</td>
