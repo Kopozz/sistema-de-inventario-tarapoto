@@ -1879,11 +1879,12 @@ app.put('/api/usuarios/perfil', verificarToken, async (req, res) => {
     }
 
     // Construir query dinámicamente solo con campos presentes
+    // IMPORTANTE: Usar nombres de columnas en minúsculas para PostgreSQL
     const updates = [];
     const values = [];
     
     if (nombre !== undefined && nombre !== null && nombre !== '') { 
-      updates.push('nombre = ?, nombreCompleto = ?'); 
+      updates.push('nombre = ?, nombrecompleto = ?'); 
       values.push(nombre, nombre); 
     }
     if (telefono !== undefined && telefono !== null) { 
@@ -1891,7 +1892,7 @@ app.put('/api/usuarios/perfil', verificarToken, async (req, res) => {
       values.push(telefono); 
     }
     if (fotoPerfil !== undefined && fotoPerfil !== null) { 
-      updates.push('fotoPerfil = ?'); 
+      updates.push('fotoperfil = ?'); 
       values.push(fotoPerfil); 
     }
     if (direccion !== undefined && direccion !== null) { 
@@ -1899,7 +1900,7 @@ app.put('/api/usuarios/perfil', verificarToken, async (req, res) => {
       values.push(direccion); 
     }
     if (fechaNacimiento !== undefined && fechaNacimiento !== null) { 
-      updates.push('fechaNacimiento = ?'); 
+      updates.push('fechanacimiento = ?'); 
       values.push(fechaNacimiento); 
     }
     if (cargo !== undefined && cargo !== null) { 
@@ -1919,20 +1920,22 @@ app.put('/api/usuarios/perfil', verificarToken, async (req, res) => {
     
     values.push(idUsuario);
     
-    const query = `UPDATE Usuario SET ${updates.join(', ')} WHERE idUsuario = ?`;
+    // IMPORTANTE: Nombres de tabla y columnas en minúsculas para PostgreSQL
+    const query = `UPDATE usuario SET ${updates.join(', ')} WHERE idusuario = ?`;
     console.log('📝 Query SQL:', query);
-    console.log('📝 Valores:', values);
+    console.log('📝 Valores:', values.map((v, i) => i === values.length - 1 ? v : (typeof v === 'string' && v.length > 50 ? v.substring(0, 50) + '...' : v)));
     
     await pool.query(query, values);
     
     // Obtener datos actualizados del usuario
+    // IMPORTANTE: Nombres de columnas en minúsculas para PostgreSQL
     const [usuarios] = await pool.query(
-      `SELECT u.idUsuario, u.nombre, u.nombreCompleto, u.email, u.telefono, u.fotoPerfil, 
-              u.direccion, u.fechaNacimiento, u.cargo, u.biografia,
-              u.estado, u.fechaHoraCreacion AS fechaCreacion, u.idRol, r.nombreRol
-       FROM Usuario u
-       INNER JOIN Rol r ON u.idRol = r.idRol
-       WHERE u.idUsuario = ?`,
+      `SELECT u.idusuario, u.nombre, u.nombrecompleto, u.email, u.telefono, u.fotoperfil, 
+              u.direccion, u.fechanacimiento, u.cargo, u.biografia,
+              u.estado, u.fechahoracreacion AS fechacreacion, u.idrol, r.nombrerol
+       FROM usuario u
+       INNER JOIN rol r ON u.idrol = r.idrol
+       WHERE u.idusuario = ?`,
       [idUsuario]
     );
     
