@@ -3245,12 +3245,16 @@ function UsersView() {
     fetchUsers()
   }, [])
 
-  // Recargar usuarios cuando cambien los filtros
+  // Recargar usuarios cuando cambien los filtros (siempre recargar, incluso cuando se limpian)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
   useEffect(() => {
-    if (filterRole !== '' || filterStatus !== '') {
-      console.log('🔄 Filtros cambiados, recargando usuarios...')
-      fetchUsers()
+    // Evitar recargar en el primer render (ya se carga en el useEffect de arriba)
+    if (isInitialLoad) {
+      setIsInitialLoad(false)
+      return
     }
+    console.log('🔄 Filtros cambiados, recargando usuarios...', { filterRole, filterStatus })
+    fetchUsers()
   }, [filterRole, filterStatus])
 
   const handleChangeRole = (user) => {
