@@ -79,7 +79,12 @@ export default function EditProfileModal({ isOpen, onClose, currentUser, onSucce
       
       // Usar URL relativa para que funcione tanto en desarrollo como en producción
       const baseUrl = import.meta.env.VITE_API_URL || ''
-      const response = await fetch(`${baseUrl}/api/usuarios/perfil`, {
+      const apiUrl = `${baseUrl}/api/usuarios/perfil`
+      
+      console.log('📤 Enviando actualización de perfil a:', apiUrl)
+      console.log('📦 Datos a enviar:', { ...formData, fotoPerfil: formData.fotoPerfil ? '(imagen presente)' : null })
+      
+      const response = await fetch(apiUrl, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -88,17 +93,33 @@ export default function EditProfileModal({ isOpen, onClose, currentUser, onSucce
         body: JSON.stringify(formData)
       })
 
-      const data = await response.json()
+      console.log('📨 Response status:', response.status)
+      
+      // Intentar leer la respuesta como texto primero
+      const responseText = await response.text()
+      console.log('📄 Response text:', responseText.substring(0, 200))
+      
+      // Intentar parsear como JSON
+      let data
+      try {
+        data = JSON.parse(responseText)
+      } catch (parseError) {
+        console.error('❌ Error parseando respuesta:', parseError.message)
+        alert(`Error del servidor: ${responseText.substring(0, 100)}`)
+        return
+      }
 
       if (response.ok) {
+        console.log('✅ Perfil actualizado exitosamente')
         onSuccess(data.usuario)
         onClose()
       } else {
-        alert(data.message || 'Error al actualizar perfil')
+        console.error('❌ Error del servidor:', data)
+        alert(data.message || `Error ${response.status}: ${JSON.stringify(data)}`)
       }
     } catch (error) {
-      console.error('Error:', error)
-      alert('Error al actualizar perfil')
+      console.error('❌ Error de conexión:', error)
+      alert(`Error de conexión: ${error.message}`)
     } finally {
       setLoading(false)
     }
