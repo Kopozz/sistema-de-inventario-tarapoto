@@ -76,7 +76,10 @@ export default function EditProfileModal({ isOpen, onClose, currentUser, onSucce
 
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token')
-      const response = await fetch('http://localhost:3000/api/usuarios/perfil', {
+      
+      // Usar URL relativa para que funcione tanto en desarrollo como en producción
+      const baseUrl = import.meta.env.VITE_API_URL || ''
+      const response = await fetch(`${baseUrl}/api/usuarios/perfil`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

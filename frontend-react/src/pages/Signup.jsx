@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useToast } from '../components/ToastProvider'
 import ThemeSwitch from '../components/ThemeSwitch'
 
-const API_BASE = 'http://localhost:3000'
+const isProduction = !window.location.hostname.includes('localhost')
+const API_BASE = import.meta.env.VITE_API_URL || (isProduction ? '' : 'http://localhost:3000')
 
 export default function Signup() {
   const navigate = useNavigate()

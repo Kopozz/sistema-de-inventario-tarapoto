@@ -17,7 +17,11 @@ export default function UserRoleModal({ isOpen, onClose, user, roles, onSuccess 
 
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token')
-      const response = await fetch(`http://localhost:3000/api/usuarios/${user.idUsuario}/rol`, {
+      
+      // Usar URL relativa para que funcione tanto en desarrollo como en producción
+      const isProduction = !window.location.hostname.includes('localhost')
+      const baseUrl = import.meta.env.VITE_API_URL || (isProduction ? '' : 'http://localhost:3000')
+      const response = await fetch(`${baseUrl}/api/usuarios/${user.idUsuario}/rol`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
