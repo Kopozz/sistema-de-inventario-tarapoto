@@ -1857,6 +1857,15 @@ app.put('/api/usuarios/perfil', verificarToken, async (req, res) => {
     console.log('🔄 Intentando actualizar perfil del usuario:', idUsuario);
     console.log('📦 Datos recibidos:', { nombre, telefono, fotoPerfil: fotoPerfil ? '(imagen presente)' : null, direccion, fechaNacimiento, cargo, biografia });
     
+    // IMPORTANTE: Convertir strings vacíos a null para PostgreSQL
+    // PostgreSQL no acepta "" como timestamp válido
+    if (fechaNacimiento === '') fechaNacimiento = null;
+    if (telefono === '') telefono = null;
+    if (direccion === '') direccion = null;
+    if (cargo === '') cargo = null;
+    if (biografia === '') biografia = null;
+    if (fotoPerfil === '') fotoPerfil = null;
+    
     // Normalizar fechaNacimiento si viene en formato dd/mm/yyyy
     if (fechaNacimiento && typeof fechaNacimiento === 'string') {
       // aceptar formatos yyyy-mm-dd o dd/mm/yyyy
@@ -1883,6 +1892,7 @@ app.put('/api/usuarios/perfil', verificarToken, async (req, res) => {
     const updates = [];
     const values = [];
     
+    // Solo agregar campos que tienen valor (no undefined, no null después de la limpieza)
     if (nombre !== undefined && nombre !== null && nombre !== '') { 
       updates.push('nombre = ?, nombrecompleto = ?'); 
       values.push(nombre, nombre); 
@@ -1917,6 +1927,7 @@ app.put('/api/usuarios/perfil', verificarToken, async (req, res) => {
       console.log('⚠️ No hay campos para actualizar');
       return res.status(400).json({ message: 'Debe proporcionar al menos un campo para actualizar' });
     }
+
     
     values.push(idUsuario);
     
